@@ -98,9 +98,9 @@ export default function AdminBlogPage() {
       if (error) {
         console.error("Failed to load blog posts", JSON.stringify(error, null, 2))
         if (error.code === "42P01" || error.message?.includes("does not exist")) {
-          setLoadError("Blog posts table not found. Run scripts/003_complete_setup.sql in Supabase.")
+          setLoadError("Blog posts table not found. Follow the DATABASE_SETUP.md guide at the project root.")
         } else if (error.code === "42501" || error.message?.includes("permission denied")) {
-          setLoadError("Permission denied. Check your RLS policies in Supabase.")
+          setLoadError("Permission denied. Check your RLS policies in Supabase or follow DATABASE_SETUP.md.")
         } else {
           setLoadError(error.message || "Failed to load blog posts")
         }
@@ -191,12 +191,12 @@ export default function AdminBlogPage() {
         console.error("Failed to upload image", uploadError)
         if (uploadError.message?.includes("Bucket not found") || uploadError.message?.includes("does not exist")) {
           toast.error(
-            'Storage bucket "blog-images" not found. Run scripts/004_storage_blog_images.sql in Supabase SQL Editor to create it.',
+            'Storage bucket "blog-images" not found. Follow the DATABASE_SETUP.md guide to create it.',
             { duration: 8000 }
           )
         } else if (uploadError.message?.includes("permission denied") || uploadError.message?.includes("new row violates")) {
           toast.error(
-            "Permission denied. Check Storage bucket policies (run 004_storage_blog_images.sql).",
+            "Permission denied. Check Storage bucket policies in Supabase or follow DATABASE_SETUP.md.",
             { duration: 8000 }
           )
         } else {
