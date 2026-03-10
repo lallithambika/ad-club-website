@@ -11,12 +11,14 @@ import { Gamification } from "@/components/home/gamification"
 import { ProjectShowcase } from "@/components/home/project-showcase"
 import { Highlights } from "@/components/home/highlights"
 import { FAB } from "@/components/home/fab"
+import { SetupBanner } from "@/components/setup-banner"
 
 export default function HomePage() {
   return (
     <div className="min-h-screen">
       <Navigation />
       <main>
+        <SetupBanner />
         <HeroSection />
         <StoryHighlights />
         <AboutPreview />

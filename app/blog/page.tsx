@@ -327,8 +327,16 @@ export default function BlogPage() {
 
       if (error) {
         console.error("Failed to load posts", error)
-        setLoadError(error.message || "Failed to load blog posts")
-        toast.error("Failed to load blog posts")
+        
+        // Check if table doesn't exist (initialization needed)
+        if (error.code === 'PGRST205' || error.message?.includes("Could not find the table")) {
+          setLoadError("Database not initialized. Please visit /setup to initialize.")
+          toast.error("Please initialize the database at /setup")
+        } else {
+          setLoadError(error.message || "Failed to load blog posts")
+          toast.error("Failed to load blog posts")
+        }
+        
         setIsInitialLoading(false)
         setIsLoadingMore(false)
         return

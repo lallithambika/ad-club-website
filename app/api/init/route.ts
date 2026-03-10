@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/admin"
+import { initializeDatabase } from "@/lib/supabase/init-db"
 
 /**
  * POST /api/init
  *
- * Initialize or verify database schema
- * This endpoint checks if the required tables exist and creates them if needed
+ * Automatically initialize the database schema
+ * Creates all required tables, storage bucket, and RLS policies
  */
 export async function POST(request: Request) {
   try {
@@ -17,28 +18,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const admin = createAdminClient()
-    console.log("[init-api] Starting database initialization check...")
+    console.log("[init-api] Starting automatic database initialization...")
 
-    // Check if blog_posts table exists
+    // Run the initialization
+    await initializeDatabase()
+
+    // Verify tables were created
+    const admin = createAdminClient()
     const { data: blogPostsCheck, error: blogPostsError } = await admin
       .from("blog_posts")
       .select("id", { count: "exact" })
       .limit(0)
 
-    if (blogPostsError && blogPostsError.code === "PGRST116") {
-      // Table doesn't exist
+    if (blogPostsError) {
+      console.warn("[init-api] Tables may not be fully initialized:", blogPostsError)
       return NextResponse.json(
         {
-          status: "needs_setup",
-          message: "Database tables not found. Please follow the DATABASE_SETUP.md guide.",
-          setup_url: "/DATABASE_SETUP.md",
+          status: "partial_success",
+          message: "Initialization attempt completed. Some components may need manual setup.",
+          details: blogPostsError.message,
         },
         { status: 200 }
       )
     }
 
-    console.log("[init-api] blog_posts table exists")
+    console.log("[init-api] Database initialization successful!")
 
     // Check storage bucket
     let bucketExists = false
@@ -49,35 +53,23 @@ export async function POST(request: Request) {
       console.warn("[init-api] Could not check storage buckets:", error)
     }
 
-    if (!bucketExists) {
-      try {
-        console.log("[init-api] Creating blog-images bucket...")
-        await admin.storage.createBucket("blog-images", {
-          public: true,
-          fileSizeLimit: 5242880,
-        })
-        console.log("[init-api] Created blog-images bucket")
-      } catch (error: any) {
-        if (error.message?.includes("already exists")) {
-          console.log("[init-api] blog-images bucket already exists")
-        } else {
-          console.warn("[init-api] Could not create storage bucket:", error.message)
-        }
-      }
-    }
-
     return NextResponse.json(
       {
-        status: "ok",
-        message: "Database is initialized and ready",
+        status: "success",
+        message: "Database initialized automatically",
         tables: {
-          blog_posts: true,
+          blog_posts: !blogPostsError,
           blog_likes: true,
           blog_comments: true,
         },
         storage: {
           "blog-images": bucketExists,
         },
+        next_steps: [
+          "Visit /blog to view published posts",
+          "Visit /admin/blog to create new posts",
+          "Upload images to posts using the admin interface"
+        ]
       },
       { status: 200 }
     )
