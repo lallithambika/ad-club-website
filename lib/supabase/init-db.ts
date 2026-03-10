@@ -10,6 +10,27 @@ export async function initializeDatabase() {
   try {
     console.log("[init-db] Starting database initialization...")
 
+    // Create admin_profiles table first
+    await admin.rpc("exec_sql", {
+      sql: `
+        CREATE TABLE IF NOT EXISTS public.admin_profiles (
+          id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+          name TEXT,
+          email TEXT UNIQUE,
+          role TEXT DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `,
+    }).catch(() => {
+      console.log("[init-db] Could not create admin_profiles table via RPC")
+    })
+
+    // Enable RLS on admin_profiles
+    await admin.rpc("exec_sql", {
+      sql: `ALTER TABLE public.admin_profiles ENABLE ROW LEVEL SECURITY;`,
+    }).catch(() => {})
+
     // Create blog_posts table
     await admin.rpc("exec_sql", {
       sql: `
