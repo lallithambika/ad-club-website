@@ -81,6 +81,8 @@ function AdminLoginContent() {
               width={80}
               height={80}
               className="rounded-xl"
+              priority
+              loading="eager"
             />
           </div>
           <div>

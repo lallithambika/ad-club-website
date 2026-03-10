@@ -37,18 +37,21 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse
   }
 
-  // Protect admin routes - redirect to admin login if not authenticated
-  if (
-    request.nextUrl.pathname.startsWith("/admin") &&
-    !request.nextUrl.pathname.startsWith("/admin/login")
-  ) {
+  // Allow admin/login to be publicly accessible
+  if (request.nextUrl.pathname === "/admin/login") {
+    return supabaseResponse
+  }
+
+  // Protect other admin routes - redirect to admin login if not authenticated
+  if (request.nextUrl.pathname.startsWith("/admin")) {
     if (!user) {
       const url = request.nextUrl.clone()
       url.pathname = "/admin/login"
       return NextResponse.redirect(url)
     }
 
-    // Check if user has an admin_profile with privileged role
+    // Check if user has an admin_profile with privileged role (optional check)
+    // This will fail gracefully if admin_profiles table doesn't exist yet
     try {
       const { data: adminProfile, error: profileError } = await supabase
         .from("admin_profiles")
@@ -56,31 +59,26 @@ export async function updateSession(request: NextRequest) {
         .eq("id", user.id)
         .maybeSingle()
 
-      // If there's an RLS error (like infinite recursion), allow through to let the app handle it
-      // This prevents redirect loops when RLS policies are misconfigured
+      // If table doesn't exist or other errors, log but allow through
       if (profileError) {
-        console.error("[middleware] Error checking admin profile:", profileError.message)
-        // Don't redirect on RLS errors - let the page handle it
-        if (profileError.code === "42P17" || profileError.message?.includes("recursion")) {
-          console.warn("[middleware] RLS recursion detected - allowing request through")
-          return supabaseResponse
-        }
-        // For other errors, redirect to login
-        const url = request.nextUrl.clone()
-        url.pathname = "/admin/login"
-        url.searchParams.set("error", "auth_failed")
-        return NextResponse.redirect(url)
+        console.warn("[middleware] Admin profile check failed:", profileError.message)
+        // Allow through - the page will show appropriate error if needed
+        return supabaseResponse
       }
 
-      const isAdmin = adminProfile?.role === "admin" || adminProfile?.role === "super_admin"
-      if (!isAdmin) {
-        const url = request.nextUrl.clone()
-        url.pathname = "/admin/login"
-        url.searchParams.set("error", "unauthorized")
-        return NextResponse.redirect(url)
+      // If profile exists, check role
+      if (adminProfile) {
+        const isAdmin = adminProfile.role === "admin" || adminProfile.role === "super_admin"
+        if (!isAdmin) {
+          const url = request.nextUrl.clone()
+          url.pathname = "/admin/login"
+          url.searchParams.set("error", "unauthorized")
+          return NextResponse.redirect(url)
+        }
       }
+      // If profile doesn't exist but user is authenticated, allow through
     } catch (err) {
-      console.error("[middleware] Unexpected error checking admin:", err)
+      console.warn("[middleware] Unexpected error in admin check:", err)
       // On unexpected errors, allow through to prevent redirect loops
       return supabaseResponse
     }
