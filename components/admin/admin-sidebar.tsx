@@ -42,7 +42,7 @@ export function AdminSidebar() {
     <>
       <div className="p-4 border-b border-border">
         <Link href="/admin/dashboard" className="flex items-center gap-3">
-          <Image src="/logo.jpeg" alt="AD Club" width={40} height={40} className="rounded-lg" />
+          <Image src="/logo.jpeg" alt="AD Club" width={40} height={40} className="rounded-lg" priority />
           <div>
             <h1 className="font-bold text-foreground">AD Club</h1>
             <p className="text-xs text-muted-foreground">Admin Portal</p>
