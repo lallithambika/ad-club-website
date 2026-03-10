@@ -40,6 +40,7 @@ export function Navigation() {
             height={40}
             className="rounded-lg"
             priority
+            loading="eager"
           />
           <span className="hidden font-semibold text-foreground sm:inline-block">
             AD Club

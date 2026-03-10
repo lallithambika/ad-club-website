@@ -33,6 +33,7 @@ export function Footer() {
                 height={48}
                 className="rounded-lg"
                 priority
+                loading="eager"
               />
               <div>
                 <span className="font-semibold text-foreground">Arena App Development Club</span>
